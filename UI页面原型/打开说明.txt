@@ -1,0 +1,25 @@
+Character Consistency Studio · UI 页面原型
+
+一、如何打开
+1. 双击本文件夹中的 index.html，使用 Chrome 或 Edge 打开即可。
+2. 请保留整个文件夹一起拷贝，不要只拷贝 index.html，否则会缺少样式、图片和交互。
+3. 如浏览器限制本地文件访问，可在本文件夹地址栏执行：
+   D:\miniconda3\miniconda3\envs\Agent\python.exe -m http.server 4173 --bind 127.0.0.1
+   然后访问 http://127.0.0.1:4173/
+
+二、快速演示路径
+工作台 → 载入课题示例 → 开始检查 → 查看检测结果 → 优化此镜头 → 重新生成 → 采用为当前镜头 → 查看更新后的报告。
+
+三、页面直达
+工作台：index.html#home
+新建检测任务：index.html#create
+检测任务：index.html#analysis
+检测结果：index.html#results
+优化提示词：index.html#optimizer
+历史报告：index.html#history
+设置：index.html#settings
+
+四、说明
+- 本版本为静态 UI 原型，页面中的分析、生成、预检、历史数据均为本地模拟，不会调用真实模型或图像生成服务，也不需要配置 API Key。
+- preview 文件夹为各页面预览截图，可直接查看。
+- 版本日期：2026-11-24。

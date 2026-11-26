@@ -1,0 +1,895 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#060a12">
+  <script>
+    /* 刷新真实页时先盖住原型演示画面，等真实数据回来再移除 */
+    (function () {
+      try {
+        var screen = window.location.hash.replace('#', '');
+        if (screen === '' || screen === 'home' || screen === 'history' || screen === 'results' || screen === 'optimizer') {
+          document.documentElement.classList.add('ccs-restoring');
+          window.setTimeout(function () {
+            document.documentElement.classList.remove('ccs-restoring');
+          }, 15000);
+        }
+      } catch (error) {}
+    })();
+  </script>
+  <title>Character Consistency Studio · AI 角色形象一致性检查</title>
+  <meta name="description" content="对比角色设定与连续镜头，定位发型、服装与配饰漂移，生成可执行的修正提示词。">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css?v=20261125g">
+  <link rel="stylesheet" href="styles.additions.css?v=20261125j">
+</head>
+<body>
+  <div class="boot-cover" aria-hidden="true">
+    <span class="boot-ring"></span>
+    <span class="boot-copy">正在载入本地数据…</span>
+  </div>
+  <svg class="svg-sprite" aria-hidden="true">
+    <symbol id="i-logo" viewBox="0 0 24 24">
+      <rect x="3.2" y="5.5" width="13.6" height="13.6" rx="2.2"/>
+      <path d="M7.2 2.8h13.6a2.4 2.4 0 0 1 2.4 2.4v13.6"/>
+      <circle cx="10" cy="12.3" r="2.1"/>
+      <path d="M6.4 18.2 16.5 8.6"/>
+    </symbol>
+    <symbol id="i-home" viewBox="0 0 24 24">
+      <path d="M3.5 10.7 12 3.4l8.5 7.3V20a1.5 1.5 0 0 1-1.5 1.5h-4.2v-6.2h-5.6v6.2H5A1.5 1.5 0 0 1 3.5 20z"/>
+    </symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-scan" viewBox="0 0 24 24">
+      <path d="M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16M6.5 12h11"/>
+    </symbol>
+    <symbol id="i-images" viewBox="0 0 24 24">
+      <rect x="3.5" y="6.5" width="13" height="13" rx="2"/>
+      <path d="M7.5 3.5h10A3 3 0 0 1 20.5 6.5v10"/>
+      <circle cx="8.3" cy="11" r="1.4"/>
+      <path d="m4.5 17.5 3.8-3.8 3 3 2-2 3.2 3.2"/>
+    </symbol>
+    <symbol id="i-history" viewBox="0 0 24 24">
+      <path d="M3.5 12a8.5 8.5 0 1 0 2.5-6M3.5 4.5V10h5.5"/>
+      <path d="M12 7.5V12l3 1.8"/>
+    </symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="3.2"/>
+      <path d="M19.4 12a7.5 7.5 0 0 0-.1-1l2-1.5-2-3.4-2.3 1a7.6 7.6 0 0 0-1.7-1L14.9 3h-5.8l-.4 3a7.6 7.6 0 0 0-1.7 1L4.7 6l-2 3.4 2 1.5a7.6 7.6 0 0 0 0 2.1l-2 1.5 2 3.4 2.3-1a7.6 7.6 0 0 0 1.7 1l.4 3h5.8l.4-3a7.6 7.6 0 0 0 1.7-1l2.3 1 2-3.4-2-1.5c.1-.3.1-.7.1-1z"/>
+    </symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24">
+      <path d="M18 9a6 6 0 0 0-12 0c0 7-2.4 7-2.4 8.5h16.8C20.4 16 18 16 18 9"/>
+      <path d="M9.8 20.5a2.4 2.4 0 0 0 4.4 0"/>
+    </symbol>
+    <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M4 12h16M14 6l6 6-6 6"/></symbol>
+    <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M20 12H4M10 6l-6 6 6 6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m4.5 12.5 5 5L19.5 7"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24">
+      <path d="M12 3.5 21 20H3z"/><path d="M12 9v5M12 17.2v.1"/>
+    </symbol>
+    <symbol id="i-help" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.6"/>
+      <path d="M9.5 9.2a2.6 2.6 0 1 1 4.4 1.9c-.9.7-1.9 1.3-1.9 2.6M12 17.4v.1"/>
+    </symbol>
+    <symbol id="i-info" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.6"/><path d="M12 10.8v5M12 7.7v.1"/>
+    </symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24">
+      <path d="M12 16V4M7.5 8.5 12 4l4.5 4.5"/>
+      <path d="M4.5 15.5v2.8a2.2 2.2 0 0 0 2.2 2.2h10.6a2.2 2.2 0 0 0 2.2-2.2v-2.8"/>
+    </symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24">
+      <path d="M4 7h16M9 7V4.5h6V7M6.5 7l.8 13h9.4l.8-13M10 11v5.5M14 11v5.5"/>
+    </symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24">
+      <rect x="8.5" y="8.5" width="11" height="11" rx="2"/>
+      <path d="M15.5 8.5v-4a2 2 0 0 0-2-2h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h4"/>
+    </symbol>
+    <symbol id="i-download" viewBox="0 0 24 24">
+      <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/>
+      <path d="M4.5 17v2a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-2"/>
+    </symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24">
+      <path d="M20 7v5h-5M4 17v-5h5"/>
+      <path d="M6.1 8.2A7.4 7.4 0 0 1 19.6 12M4.4 12a7.4 7.4 0 0 0 13.5 3.8"/>
+    </symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24">
+      <circle cx="10.8" cy="10.8" r="6.3"/><path d="m15.4 15.4 4.1 4.1"/>
+    </symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24">
+      <rect x="4.5" y="10" width="15" height="10.5" rx="2"/>
+      <path d="M8 10V7.5a4 4 0 0 1 8 0V10M12 14v2.5"/>
+    </symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24">
+      <path d="M12 3 20 6v5.5c0 4.8-3.4 8.1-8 9.5-4.6-1.4-8-4.7-8-9.5V6z"/>
+      <path d="m8.5 12 2.3 2.3 4.7-4.7"/>
+    </symbol>
+    <symbol id="i-server" viewBox="0 0 24 24">
+      <rect x="3.5" y="4" width="17" height="6" rx="2"/>
+      <rect x="3.5" y="14" width="17" height="6" rx="2"/>
+      <path d="M7 7h.1M7 17h.1M11 7h6M11 17h6"/>
+    </symbol>
+    <symbol id="i-key" viewBox="0 0 24 24">
+      <circle cx="8" cy="15.5" r="4"/>
+      <path d="m11 12.5 7.5-7.5M15.5 8.5l2.5 2.5M18 6l2 2"/>
+    </symbol>
+    <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13.5 3 5 13.5h6L10.5 21 19 10.5h-6z"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24">
+      <path d="M2.8 12S6.5 5.8 12 5.8 21.2 12 21.2 12 17.5 18.2 12 18.2 2.8 12 2.8 12z"/>
+      <circle cx="12" cy="12" r="2.7"/>
+    </symbol>
+    <symbol id="i-scope-hair" viewBox="0 0 24 24">
+      <circle cx="6.6" cy="17.1" r="2.2"/>
+      <circle cx="6.6" cy="6.9" r="2.2"/>
+      <path d="M8.5 8.3 19.2 18M8.5 15.7 19.2 6"/>
+    </symbol>
+    <symbol id="i-scope-outfit" viewBox="0 0 24 24">
+      <path d="M9 4.9a3.1 3.1 0 0 0 6 0"/>
+      <path d="M9 4.9 4.9 7l1.4 3.6 2.2-.9v9.5h7v-9.5l2.2.9L19.1 7 15 4.9"/>
+    </symbol>
+    <symbol id="i-scope-accessory" viewBox="0 0 24 24">
+      <path d="M6 5.4c0 4 2.7 7.1 6 7.1s6-3.1 6-7.1"/>
+      <path d="M12 12.5l2.1 2.7-2.1 3.1-2.1-3.1z"/>
+    </symbol>
+    <symbol id="i-scope-shoe" viewBox="0 0 24 24">
+      <path d="M4.6 17.4v-2.2c0-1.1.6-2.1 1.6-2.6l2.8-1.4c.6-.3 1.2-.1 1.6.4l1.1 1.4c.4.5 1 .9 1.7 1l3.5.7c1.1.2 1.9 1.2 1.9 2.3v.4c0 .6-.5 1.1-1.1 1.1H5.7c-.6 0-1.1-.5-1.1-1.1z"/>
+      <path d="M9.1 13.2l1.4 1.5M11.3 12.6l1.4 1.5"/>
+    </symbol>
+    <symbol id="i-scope-hidden" viewBox="0 0 24 24">
+      <path d="M2.9 12S6.6 5.9 12 5.9 21.1 12 21.1 12 17.4 18.1 12 18.1 2.9 12 2.9 12z"/>
+      <circle cx="12" cy="12" r="2.5"/>
+      <path d="m5.2 5.2 13.6 13.6"/>
+    </symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M12 7v5.4l3.3 1.9"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24">
+      <path d="M4 7h10M18 7h2M4 17h2M10 17h10"/>
+      <circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>
+    </symbol>
+    <symbol id="i-image" viewBox="0 0 24 24">
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2.2"/>
+      <circle cx="8.5" cy="9.5" r="1.5"/><path d="m4.5 17 4.8-4.8 3.4 3.4 2.3-2.3 4.5 4.5"/>
+    </symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24">
+      <rect x="4" y="4" width="6.5" height="6.5" rx="1.4"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.4"/>
+      <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.4"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.4"/>
+    </symbol>
+    <symbol id="i-list" viewBox="0 0 24 24">
+      <path d="M9 6h11M9 12h11M9 18h11"/><path d="M4.5 6h.1M4.5 12h.1M4.5 18h.1"/>
+    </symbol>
+    <symbol id="i-compare" viewBox="0 0 24 24">
+      <rect x="3.5" y="5" width="7" height="14" rx="1.6"/><rect x="13.5" y="5" width="7" height="14" rx="1.6"/>
+      <path d="M12 3v18"/>
+    </symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M8.5 3.5h-5v5M15.5 3.5h5v5M8.5 20.5h-5v-5M15.5 20.5h5v-5"/></symbol>
+    <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M4 10a8.5 8.5 0 1 1 2.3 7.7M4 4.5V10h5.5"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3.8 7.5a2 2 0 0 1 2-2h3.4l2 2.2h7a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5.8a2 2 0 0 1-2-2z"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24">
+      <path d="M4 8.5h3l1.4-2h7.2l1.4 2h3v10H4z"/><circle cx="12" cy="13" r="3.2"/>
+    </symbol>
+  </svg>
+
+  <div class="app">
+    <aside class="sidebar">
+      <a class="brand" href="#home" data-nav="home" aria-label="返回工作台">
+        <span class="brand-mark"><svg class="icon"><use href="#i-logo"/></svg></span>
+        <span class="brand-text">
+          <b>CHARACTER</b>
+          <span>CONSISTENCY STUDIO</span>
+        </span>
+      </a>
+
+      <div class="nav-group">
+        <span class="nav-label">WORKSPACE</span>
+        <button class="nav-item is-active" data-nav="home">
+          <svg class="icon"><use href="#i-home"/></svg><span>工作台</span>
+        </button>
+        <button class="nav-item" data-nav="create">
+          <svg class="icon"><use href="#i-plus"/></svg><span>新建检测任务</span>
+        </button>
+        <button class="nav-item" data-nav="analysis">
+          <svg class="icon"><use href="#i-scan"/></svg><span>检测任务</span>
+        </button>
+      </div>
+
+      <div class="nav-group">
+        <span class="nav-label">LIBRARY</span>
+        <button class="nav-item" data-nav="history">
+          <svg class="icon"><use href="#i-history"/></svg><span>历史报告</span>
+        </button>
+      </div>
+
+      <div class="sidebar-bottom">
+        <div class="local-card">
+          <span class="live-dot"></span>
+          <div><b>Local workspace</b><span>图片仅保存在本机</span></div>
+        </div>
+        <button class="nav-item" data-nav="settings">
+          <svg class="icon"><use href="#i-settings"/></svg><span>设置</span>
+        </button>
+      </div>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <div class="topbar-title" id="topbar-title">
+          <div class="eyebrow-row">
+            <span class="eyebrow" id="page-eyebrow" aria-label="WORKSPACE"><span class="eb-root">WORKSPACE</span></span>
+            <span class="eyebrow-rule" aria-hidden="true"></span>
+          </div>
+          <div class="topbar-line">
+            <h1 id="page-title">工作台</h1>
+            <span class="status-pill is-idle" id="task-status-pill" hidden></span>
+          </div>
+          <p id="page-subtitle">检查角色在连续镜头中的形象一致性</p>
+        </div>
+        <div class="topbar-actions">
+          <img class="topbar-logo" src="assets/charcons-logo.png" alt="CharCons AI · 角色一致性工作台">
+          <button class="icon-btn" id="notify-btn" aria-label="通知" aria-expanded="false">
+            <svg class="icon"><use href="#i-bell"/></svg>
+          </button>
+          <button class="icon-btn" data-nav="settings" aria-label="打开设置">
+            <svg class="icon"><use href="#i-settings"/></svg>
+          </button>
+          <div class="user-chip"><span class="avatar">硕</span><span><b>本地创作者</b><small>单机模式</small></span></div>
+        </div>
+      </header>
+
+      <main class="view" id="view">
+
+        <!-- ============ HOME ============ -->
+        <section class="screen is-active" id="screen-home" data-title="工作台" data-eyebrow="WORKSPACE" data-subtitle="检查角色在连续镜头中的形象一致性">
+          <div class="screen-inner">
+            <div class="home-hero">
+              <div class="hero-copy">
+                <span class="kicker"><span></span>CHARACTER CONSISTENCY SYSTEM</span>
+                <h2>让角色，<br>经得起每一个镜头。</h2>
+                <p>对照设定逐镜头比对，定位漂移并给出修正建议。</p>
+                <div class="hero-actions">
+                  <button class="btn btn-primary" data-nav="create"><svg class="icon"><use href="#i-plus"/></svg>新建检测任务</button>
+                </div>
+                <div class="hero-principles">
+                  <span class="principles-label">检查原则</span>
+                  <ul class="principle-row">
+                    <li><svg class="icon"><use href="#i-eye"/></svg>依据可见证据</li>
+                    <li><svg class="icon"><use href="#i-help"/></svg>不确定不猜测</li>
+                    <li><svg class="icon"><use href="#i-check"/></svg>修正需确认</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="hero-visual cyber-visual" aria-label="赛博朋克角色视觉与实时分析装饰">
+                <img class="cyber-image" src="picture/6.png" alt="赛博朋克风格角色视觉">
+                <div class="cyber-bloom" aria-hidden="true"></div>
+                <div class="visual-grid"></div>
+                <div class="cyber-arc arc-a" aria-hidden="true"></div>
+                <div class="cyber-arc arc-b" aria-hidden="true"></div>
+                <div class="cyber-edge-data" aria-hidden="true">
+                  <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                </div>
+                <div class="cyber-scanline" aria-hidden="true"></div>
+                <div class="cyber-streak" aria-hidden="true"></div>
+                <div class="cyber-particles" aria-hidden="true">
+                  <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                </div>
+                <div class="cyber-reticle" aria-hidden="true"><span></span></div>
+                <div class="cyber-wave" aria-hidden="true">
+                  <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                </div>
+                <div class="visual-topline cyber-topline"><span class="live-dot"></span><span>LIVE ANALYSIS</span><span class="cyber-sigil" aria-hidden="true"><i></i><i></i></span></div>
+                <div class="visual-corner tl"></div><div class="visual-corner tr"></div>
+                <div class="visual-corner bl"></div><div class="visual-corner br"></div>
+                <div class="cyber-baseline" aria-hidden="true"><i></i><span></span><i></i></div>
+              </div>
+            </div>
+
+            <div class="home-lower">
+              <div class="panel recent-panel">
+                <div class="panel-head">
+                  <div><span class="section-kicker">RECENT TASKS</span><h3>最近检测任务</h3></div>
+                  <button class="text-btn" data-nav="history">查看全部<svg class="icon"><use href="#i-arrow-right"/></svg></button>
+                </div>
+                <div class="task-rows is-loading">
+                  <div class="rows-skeleton" aria-hidden="true"><span></span><span></span><span></span></div>
+                  <button class="task-row" data-nav="results">
+                    <span class="row-thumb"><img src="assets/shot-1.jpg" alt=""><i class="thumb-badge is-warn">2</i></span>
+                    <span class="row-main"><b>阿岚 · 第一幕</b><span>3 个镜头 · 2 处确定不一致 · 14 项无法判断</span></span>
+                    <span class="row-meta"><span class="status-pill is-ok"><i></i>已完成</span><small>今天 10:06</small></span>
+                    <svg class="icon row-arrow"><use href="#i-chevron-right"/></svg>
+                  </button>
+                  <button class="task-row" data-nav="history">
+                    <span class="row-thumb"><img src="assets/history-a.jpg" alt=""><i class="thumb-badge is-info">2</i></span>
+                    <span class="row-main"><b>阿岚 · 窗边补拍</b><span>2 个镜头 · 1 个镜头分析失败 · 部分完成</span></span>
+                    <span class="row-meta"><span class="status-pill is-partial"><i></i>部分完成</span><small>昨天 18:40</small></span>
+                    <svg class="icon row-arrow"><use href="#i-chevron-right"/></svg>
+                  </button>
+                  <button class="task-row" data-nav="history">
+                    <span class="row-thumb"><img src="assets/history-b.jpg" alt=""><i class="thumb-badge is-ok">0</i></span>
+                    <span class="row-main"><b>阿岚 · 咖啡馆试拍</b><span>3 个镜头 · 全部一致 · 无确定问题</span></span>
+                    <span class="row-meta"><span class="status-pill is-ok"><i></i>已完成</span><small>11 月 20 日</small></span>
+                    <svg class="icon row-arrow"><use href="#i-chevron-right"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="panel inspect-panel">
+                <div class="panel-head">
+                  <div><span class="section-kicker">WHAT WE CHECK</span><h3>检查范围</h3></div>
+                  <span class="micro-label">依据角色设定</span>
+                </div>
+                <div class="inspect-list">
+                  <div><span class="inspect-icon"><svg class="icon"><use href="#i-scope-hair"/></svg></span><b>发型与发色</b></div>
+                  <div><span class="inspect-icon"><svg class="icon"><use href="#i-scope-outfit"/></svg></span><b>上装与下装</b></div>
+                  <div><span class="inspect-icon"><svg class="icon"><use href="#i-scope-accessory"/></svg></span><b>配饰</b></div>
+                  <div><span class="inspect-icon"><svg class="icon"><use href="#i-scope-shoe"/></svg></span><b>鞋履与道具</b></div>
+                  <div><span class="inspect-icon"><svg class="icon"><use href="#i-scope-hidden"/></svg></span><b>不可见部位</b></div>
+                </div>
+                <div class="pipeline-mini">
+                  <span class="micro-label">固定分析流程</span>
+                  <div class="mini-steps">
+                    <span class="is-done">设定解析</span>
+                    <span class="is-done">剧本解析</span>
+                    <span class="is-active">逐镜头观察</span>
+                    <span>判定与证据</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ CREATE ============ -->
+        <section class="screen" id="screen-create" data-title="新建检测任务" data-eyebrow="TASK / NEW" data-subtitle="录入角色设定、剧本说明与连续镜头">
+          <div class="screen-inner">
+            <div class="page-head create-head">
+              <div>
+                <span class="section-kicker">CREATE CHECK</span>
+                <h2>建立一次新的角色检查</h2>
+                <p>三项材料齐全后开始分析。镜头顺序即报告编号，后续替换图片不改变编号。</p>
+              </div>
+              <div class="create-head-side">
+                <div class="stepper" aria-label="任务步骤">
+                  <span class="step step-01 is-done"><i>01</i>角色设定</span><span class="step-line"></span>
+                  <span class="step step-02 is-done"><i>02</i>剧本说明</span><span class="step-line"></span>
+                  <span class="step step-03 is-active"><i>03</i>连续镜头</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="create-grid">
+              <section class="panel form-panel panel-step-1">
+                <div class="panel-head">
+                  <div><span class="section-kicker">CHARACTER PROFILE</span><h3>角色设定</h3></div>
+                  <span class="micro-label">必填 · ≤ 500 字</span>
+                </div>
+                <label class="field-label" for="character-input">用自然语言描述角色的固定外观</label>
+                <textarea class="text-input" id="character-input" rows="4" placeholder="请输入角色的固定外观：发型、发色、上装、下装、鞋履、配饰、道具等。只写确定的信息，未写到的项会标记为设定未定义。"></textarea>
+                <div class="field-hint"><svg class="icon"><use href="#i-info"/></svg>只提取你写下的要素；未提及的项会标记为「设定未定义」。</div>
+                <div class="parsed-block">
+                  <div class="parsed-head"><span>已解析要素</span><small>只读 · 检查依据</small></div>
+                  <div class="parsed-list" id="parsed-attributes"></div>
+                </div>
+              </section>
+
+              <section class="panel form-panel panel-step-2">
+                <div class="panel-head">
+                  <div><span class="section-kicker">SCRIPT CONTEXT</span><h3>剧本说明</h3></div>
+                  <span class="micro-label">必填 · ≤ 1000 字</span>
+                </div>
+                <label class="field-label" for="script-input">说明剧情中允许发生的外观变化</label>
+                <div class="template-row" role="group" aria-label="剧本变化预设">
+                  <button class="chip is-active" data-template="none" aria-pressed="true">全程无换装</button>
+                  <button class="chip" data-template="change" aria-pressed="false">存在换装 / 场景切换</button>
+                </div>
+                <textarea class="text-input" id="script-input" rows="4">所有镜头之间为同一场戏的连续动作，无换装情节。</textarea>
+                <div class="field-hint" id="script-input-hint"><svg class="icon"><use href="#i-info"/></svg>请写明镜头号与具体要素（如「S2 发色变为红褐色」）；场景切换本身不会自动豁免外观。</div>
+                <div class="context-card">
+                  <div class="context-head">
+                    <div class="context-title"><span class="status-icon is-info"><svg class="icon"><use href="#i-info"/></svg></span>外观变化规则</div>
+                    <span class="rule-badge is-strict" id="script-mode">严格比对 · 无豁免</span>
+                  </div>
+                  <p class="context-summary" id="script-rule-note">剧情未允许变化：以下要素在全部镜头中按角色设定严格比对。</p>
+                  <div class="rule-grid" id="script-rule-grid"></div>
+                  <div class="context-foot" id="script-rule-foot">光线、角度与场景切换不构成豁免；只有写明镜头与要素的变化才允许局部变化。</div>
+                </div>
+                <div class="context-card is-warning" id="script-warning" hidden>
+                  <div class="context-title"><span class="status-icon is-warn"><svg class="icon"><use href="#i-alert"/></svg></span><span id="script-warning-title">变化描述尚未定位到镜头</span></div>
+                  <p id="script-warning-note">当前不建立任何豁免，全部要素按不允许变化处理。请补充镜头号与具体要素（如「S2 发色变为红褐色」）后再开始检查。</p>
+                </div>
+              </section>
+            </div>
+
+            <section class="panel upload-panel panel-step-3">
+              <div class="panel-head">
+                <div><span class="section-kicker">SHOT SEQUENCE</span><h3>连续镜头</h3></div>
+                <div class="upload-meta">
+                  <span class="micro-label">按叙事顺序排列</span>
+                  <span class="status-pill is-neutral" id="shot-count-pill">3 个镜头</span>
+                </div>
+              </div>
+              <div class="shot-grid" id="shot-list"></div>
+              <div class="upload-row">
+                <button class="dropzone" id="dropzone" data-action="pick-files">
+                  <span class="drop-icon"><svg class="icon"><use href="#i-upload"/></svg></span>
+                  <div><b>拖拽镜头图片到这里</b><span>或点击选择文件 · JPG / PNG / WebP · 单张默认 ≤ 20MB</span></div>
+                  <span class="drop-or">支持批量上传</span>
+                </button>
+                <input type="file" id="shot-input" accept="image/png,image/jpeg,image/webp" multiple hidden>
+                <div class="upload-side">
+                  <div><span class="micro-label">自动处理</span><p>纠正方向 · 生成分析副本 · 质量检查</p></div>
+                  <div><span class="micro-label">预计分析</span><p id="estimate-time">3 张 · 约 45 秒</p></div>
+                </div>
+              </div>
+            </section>
+
+            <div class="action-bar">
+              <div class="action-checks">
+                <span class="check-item is-done" id="check-character"><svg class="icon"><use href="#i-check"/></svg>角色设定</span>
+                <span class="check-item is-done" id="check-script"><svg class="icon"><use href="#i-check"/></svg>剧本说明</span>
+                <span class="check-item is-done" id="check-shots"><svg class="icon"><use href="#i-check"/></svg><span id="check-shots-text">3 张镜头</span></span>
+                <span class="action-hint">镜头编号将按当前顺序生成 S1…Sn</span>
+              </div>
+              <div class="action-buttons">
+                <button class="btn btn-primary" id="start-analysis" data-action="start-analysis">开始检查<svg class="icon"><use href="#i-arrow-right"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ ANALYSIS ============ -->
+        <section class="screen" id="screen-analysis" data-title="检测任务" data-eyebrow="TASK / ANALYZING" data-subtitle="逐镜头观察、判定并建立证据链">
+          <div class="screen-inner analysis-screen">
+            <div class="analysis-head">
+              <div class="analysis-title">
+                <button class="back-btn" data-nav="create" aria-label="返回任务输入"><svg class="icon"><use href="#i-arrow-left"/></svg></button>
+                <div><span class="section-kicker" id="analysis-kicker">LIVE ANALYSIS</span><h2 id="analysis-current-title">检测任务</h2><p id="analysis-subline" aria-live="polite">正在连接分析任务…</p></div>
+              </div>
+              <div class="analysis-head-right" id="analysis-run-card" hidden>
+                <div class="analysis-run-top">
+                  <span class="status-pill is-live" id="analysis-status-pill"><i></i><span id="analysis-status-text">真实任务 · 分析中</span></span>
+                  <div class="analysis-run-actions">
+                    <button class="text-btn" data-action="simulate-partial" title="原型演示：模拟一个镜头观察失败" hidden>演示异常</button>
+                    <button class="btn btn-ghost btn-sm" data-action="cancel-analysis">取消分析</button>
+                  </div>
+                </div>
+                <div class="analysis-progress-inline"><div class="progress-track" role="progressbar" aria-label="分析总体进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="analysis-progress" style="width:0%"></i></div><span id="analysis-progress-text" aria-live="polite">0%</span></div>
+              </div>
+            </div>
+
+            <div class="analysis-grid">
+              <aside class="panel shot-rail">
+                <div class="rail-head"><span>镜头序列</span><small id="rail-count">已完成 — / —</small></div>
+                <div class="rail-items" id="analysis-shot-list"></div>
+              </aside>
+
+              <section class="preview-stage">
+                <div class="preview-topline">
+                  <span class="mono" id="analysis-shot-tag">— / 当前镜头</span>
+                  <div><span class="status-pill is-idle" id="analysis-stage-pill"><i></i><span id="analysis-stage-label">— / — · 等待开始</span></span></div>
+                </div>
+                <div class="preview-frame" id="analysis-preview-frame">
+                  <img id="analysis-preview-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1600' height='1000'%3E%3Crect width='100%25' height='100%25' fill='%2307111c'/%3E%3C/svg%3E" alt="当前观察镜头">
+                  <div class="preview-grid"></div>
+                  <div class="scan-beam" id="analysis-scan"></div>
+                  <div class="frame-corner tl"></div><div class="frame-corner tr"></div><div class="frame-corner bl"></div><div class="frame-corner br"></div>
+                  <div class="preview-chip" id="analysis-preview-chip"><span class="live-dot"></span><span id="preview-chip-text">证据链 · 待建立</span></div>
+                  <div class="preview-analysis-badge" id="analysis-badge">
+                    <span class="badge-orb"><span class="badge-glyph"></span></span>
+                    <div><b>等待开始</b><small>逐镜头观察即将开始</small></div>
+                  </div>
+                </div>
+              </section>
+
+              <aside class="panel insight-panel analysis-insights">
+                <div class="rail-head"><span>AI 分析</span><span class="status-pill is-idle" id="insight-state-pill"><i></i>等待开始</span></div>
+                <div class="insight-body" id="analysis-insights"></div>
+                <div class="analysis-result-cta" id="analysis-result-cta" hidden>
+                  <div class="result-ready"><span class="status-icon is-ok"><svg class="icon"><use href="#i-check"/></svg></span><div><b id="analysis-result-title">分析完成</b><p id="analysis-result-text">统计将在分析完成后生成。</p></div></div>
+                  <button class="btn btn-primary btn-block" data-nav="results">查看检测结果<svg class="icon"><use href="#i-arrow-right"/></svg></button>
+                </div>
+              </aside>
+            </div>
+
+            <div class="panel pipeline-bar">
+              <div class="pipeline-head"><span class="micro-label">ANALYSIS PIPELINE</span><span class="pipe-status" id="pipeline-status">等待开始</span></div>
+              <div class="pipeline-steps" id="analysis-pipeline"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ RESULTS ============ -->
+        <section class="screen" id="screen-results" data-title="检测结果" data-eyebrow="REPORT / 001" data-subtitle="阿岚 · 第一幕 · 3 个镜头">
+          <div class="screen-inner results-screen">
+            <div class="report-head">
+              <div>
+                <span class="section-kicker">CONSISTENCY REPORT</span>
+                <h2>阿岚 · 第一幕</h2>
+                <div class="report-meta"><span>3 个镜头</span><span>检查于今天 10:06</span><span>剧本：三镜头无换装</span><span class="status-pill is-ok"><i></i>已完成</span></div>
+              </div>
+              <div class="report-actions">
+                <button class="btn btn-ghost btn-sm" data-action="copy-report"><svg class="icon"><use href="#i-copy"/></svg>复制摘要</button>
+                <button class="btn btn-ghost btn-sm" data-export="md"><svg class="icon"><use href="#i-download"/></svg>Markdown</button>
+                <button class="btn btn-ghost btn-sm" data-export="json"><svg class="icon"><use href="#i-download"/></svg>JSON</button>
+              </div>
+            </div>
+
+            <div class="summary-strip">
+              <div class="summary-sentence">
+                <span class="status-icon is-alert"><svg class="icon"><use href="#i-alert"/></svg></span>
+                <p id="summary-text">阿岚在 3 个镜头中有 <b>2 处确定不一致</b>，集中在 S2 的外套偏冷灰与 S3 的吊坠图案不符。另有 14 项信息因画面不可见或角度遮挡，无法判断。</p>
+              </div>
+              <div class="summary-counts">
+                <span class="count-chip is-ok"><i><svg class="icon"><use href="#i-check"/></svg></i><b id="sum-consistent">12</b><small>一致判定</small></span>
+                <span class="count-chip is-alert"><i><svg class="icon"><use href="#i-alert"/></svg></i><b id="sum-issues">2</b><small>确定问题</small></span>
+                <span class="count-chip is-warn"><i><svg class="icon"><use href="#i-help"/></svg></i><b id="sum-suspected">0</b><small>疑似问题</small></span>
+                <span class="count-chip is-muted"><i><svg class="icon"><use href="#i-help"/></svg></i><b id="sum-unknown">14</b><small>无法判断</small></span>
+                <span class="count-chip is-info"><i><svg class="icon"><use href="#i-info"/></svg></i><b id="sum-waiver">0</b><small>剧本豁免</small></span>
+              </div>
+            </div>
+
+            <div class="results-grid">
+              <aside class="panel shot-gallery-panel">
+                <div class="rail-head"><span>镜头画廊</span><small>按编号排序</small></div>
+                <div class="results-gallery" id="results-gallery"></div>
+                <div class="gallery-filter"><button class="chip is-active" data-status-filter="all">全部</button><button class="chip" data-status-filter="issue">问题</button><button class="chip" data-status-filter="unknown">待判断</button></div>
+              </aside>
+
+              <section class="results-main">
+                <div class="tabs" role="tablist" aria-label="报告视图">
+                  <button class="tab is-active" data-tab="matrix" role="tab" aria-selected="true">要素矩阵 <span id="tab-count-matrix">33</span></button>
+                  <button class="tab" data-tab="issues" role="tab" aria-selected="false">确定问题 <span id="tab-count-issues">2</span></button>
+                  <button class="tab" data-tab="suspected" role="tab" aria-selected="false">疑似问题 <span id="tab-count-suspected">0</span></button>
+                  <button class="tab" data-tab="unknown" role="tab" aria-selected="false">无法判断 <span id="tab-count-unknown">14</span></button>
+                  <button class="tab" data-tab="waiver" role="tab" aria-selected="false">剧本豁免 <span>0</span></button>
+                  <button class="tab" data-tab="suggestions" role="tab" aria-selected="false">建议与抽卡</button>
+                </div>
+
+                <div class="tab-panel is-active" id="tab-matrix" role="tabpanel">
+                  <div class="tab-intro"><div><span class="section-kicker">EVIDENCE MATRIX</span><h3>每个要素，逐镜头核对</h3></div><p>点击单元格定位镜头与判定依据。状态同时使用图标与文字，不依赖颜色。</p></div>
+                  <div class="matrix-wrap">
+                    <table class="matrix-table">
+                      <thead><tr><th>要素</th><th>设定值</th><th>S1</th><th>S2</th><th>S3</th></tr></thead>
+                      <tbody id="matrix-body"></tbody>
+                    </table>
+                  </div>
+                  <div class="legend-row">
+                    <span><i class="status-icon is-ok"><svg class="icon"><use href="#i-check"/></svg></i>一致</span>
+                    <span><i class="status-icon is-alert"><svg class="icon"><use href="#i-alert"/></svg></i>不一致</span>
+                    <span><i class="status-icon is-muted"><svg class="icon"><use href="#i-help"/></svg></i>无法判断</span>
+                    <span><i class="status-icon is-observed"><svg class="icon"><use href="#i-minus"/></svg></i>仅记录</span>
+                    <span><i class="status-icon is-info"><svg class="icon"><use href="#i-info"/></svg></i>剧本豁免</span>
+                  </div>
+                </div>
+
+                <div class="tab-panel" id="tab-issues" role="tabpanel">
+                  <div class="tab-intro"><div><span class="section-kicker">CONFIRMED ISSUES</span><h3>确定问题</h3></div><p>按严重度与镜头顺序排列。每条问题都可追溯到镜头、要素与画面证据。</p></div>
+                  <div class="issue-list" id="issue-list"></div>
+                </div>
+
+                <div class="tab-panel" id="tab-suspected" role="tabpanel">
+                  <div class="tab-intro"><div><span class="section-kicker">SUSPECTED ISSUES</span><h3>疑似问题</h3></div><p>低置信度差异单独展示，不计入确定问题，等待人工复核。</p></div>
+                  <div class="empty-state small">
+                    <span class="empty-icon"><svg class="icon"><use href="#i-help"/></svg></span>
+                    <h4>本次没有疑似问题</h4>
+                    <p>所有差异都有足够证据支撑。若后续出现低置信度观察，会进入此区并提示人工复核，不会同时计入确定问题。</p>
+                  </div>
+                </div>
+
+                <div class="tab-panel" id="tab-unknown" role="tabpanel">
+                  <div class="tab-intro"><div><span class="section-kicker">UNKNOWN ITEMS</span><h3>无法判断</h3></div><p>画面信息不足时明确标注原因，不输出推测结论。</p></div>
+                  <div class="empty-note is-muted"><svg class="icon"><use href="#i-help"/></svg><p>无法判断项不计入一致或不一致。相关镜头可补充拍摄后重新分析。</p></div>
+                  <div class="unknown-list" id="unknown-list"></div>
+                </div>
+
+                <div class="tab-panel" id="tab-waiver" role="tabpanel">
+                  <div class="tab-intro"><div><span class="section-kicker">SCRIPT WAIVERS</span><h3>剧本豁免</h3></div><p>只有剧本明确允许、且能定位到具体镜头与要素的变化才会豁免。</p></div>
+                  <div class="empty-state small"><span class="empty-icon"><svg class="icon"><use href="#i-info"/></svg></span><h4>本次没有剧本豁免</h4><p>剧本说明为「这些镜头为同一场戏的连续动作，无换装情节」，所有外观变化均按设定严格比对。</p></div>
+                </div>
+
+                <div class="tab-panel" id="tab-suggestions" role="tabpanel">
+                  <div class="tab-intro"><div><span class="section-kicker">NEXT ACTIONS</span><h3>修正建议与抽卡</h3></div><p>每个问题镜头都有可直接使用的修正提示词与挑选标准。</p></div>
+                  <div class="suggestion-grid" id="suggestion-grid"></div>
+                </div>
+              </section>
+
+              <aside class="inspector" id="results-inspector"></aside>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ OPTIMIZER ============ -->
+        <section class="screen" id="screen-optimizer" data-title="优化提示词" data-eyebrow="OPTIMIZER / S3" data-subtitle="修正提示词、生成候选图并按标准预检">
+          <div class="screen-inner optimizer-screen">
+            <div class="optimizer-head">
+              <div class="analysis-title">
+                <button class="back-btn" data-nav="results" aria-label="返回检测结果"><svg class="icon"><use href="#i-arrow-left"/></svg></button>
+                <div><span class="section-kicker">PROMPT OPTIMIZER</span><h2 id="opt-title">优化 S3 · 吊坠图案</h2><p id="opt-subtitle">把红橙五瓣吊坠修回设定中的蓝紫四瓣花，并保留低侧发髻与浅米色外套。</p></div>
+              </div>
+              <div class="optimizer-head-actions">
+                <div class="segmented" id="opt-shot-switch">
+                  <button class="is-active" data-shot="S3">S3 · 1 个问题</button>
+                  <button data-shot="S2">S2 · 1 个问题</button>
+                </div>
+                <span class="status-pill is-idle" id="opt-status"><i></i>待生成</span>
+              </div>
+            </div>
+
+            <div class="opt-grid">
+              <aside class="panel prompt-panel">
+                <div class="panel-head"><div><span class="section-kicker">REVISED PROMPT</span><h3>修正提示词</h3></div><span class="micro-label">中文 · 可直接复制</span></div>
+                <div class="issue-context" id="opt-issue-context"></div>
+                <label class="field-label" for="opt-prompt">修正提示词</label>
+                <div class="code-box">
+                  <textarea id="opt-prompt" rows="5">阿岚，深棕长发低侧发髻（与 S1 一致），浅米色亚麻西装外套，黑色丝质衬衫，紫色口袋巾，圆形吊坠项链（蓝紫四瓣花，与 S1 相同），正面半身，暖调咖啡馆光线，保持与 S1 相同的角色特征与配饰细节。</textarea>
+                  <button class="copy-btn" data-copy="opt-prompt"><svg class="icon"><use href="#i-copy"/></svg>复制</button>
+                </div>
+                <label class="field-label" for="opt-negative">负向提示词</label>
+                <div class="code-box">
+                  <textarea id="opt-negative" rows="3" class="is-negative">红橙吊坠，五瓣花，星形吊坠，项链缺失，短发，高马尾，围巾，冷灰外套，大图案。</textarea>
+                  <button class="copy-btn" data-copy="opt-negative"><svg class="icon"><use href="#i-copy"/></svg>复制</button>
+                </div>
+                <div class="keypoints">
+                  <span class="field-label">修改要点</span>
+                  <div id="opt-keypoints"></div>
+                </div>
+                <div class="reference-plan">
+                  <div><span class="field-label">参考镜头</span><div class="ref-pills"><span>S1 · 吊坠参考</span><span>S2 · 发型参考</span></div></div>
+                  <div><span class="field-label">抽卡方案</span><p id="opt-cardplan">每批 4 张 · 参考 S1 · 优先还原吊坠图案</p></div>
+                </div>
+              </aside>
+
+              <section class="opt-main">
+                <div class="panel compare-panel">
+                  <div class="compare-head">
+                    <div><span class="section-kicker">ORIGINAL / CANDIDATE</span><h3>前后对比</h3></div>
+                    <span class="micro-label" id="opt-compare-label">C-001 · 预检通过</span>
+                  </div>
+                  <div class="compare-viewer" id="opt-compare">
+                    <div class="compare-pane compare-before"><img id="opt-original-img" src="assets/shot-3-close.jpg" alt="原始镜头 S3"><span class="compare-tag">ORIGINAL · S3</span></div>
+                    <div class="compare-pane compare-after" id="opt-after-pane"><img id="opt-candidate-img" src="assets/candidate-3-1.jpg" alt="候选图 C-001"><span class="compare-tag is-cyan">CANDIDATE · C-001</span></div>
+                    <div class="compare-handle" id="opt-handle"><span><svg class="icon"><use href="#i-compare"/></svg></span></div>
+                    <input class="compare-range" id="opt-range" type="range" min="0" max="100" value="50" aria-label="拖动查看前后对比">
+                  </div>
+                  <div class="compare-foot"><span>左侧原始镜头 · 右侧候选图</span><span id="opt-diff-note">吊坠图案：红橙五瓣 → 蓝紫四瓣</span></div>
+                </div>
+
+                <div class="panel candidates-panel">
+                  <div class="panel-head"><div><span class="section-kicker">CANDIDATES</span><h3>候选图与自动预检</h3></div><div class="candidate-actions"><span class="micro-label" id="candidate-count">4 张 · 预检完成</span><button class="btn btn-ghost btn-sm" id="opt-generate" data-action="generate"><svg class="icon"><use href="#i-refresh"/></svg>重新生成</button></div></div>
+                  <div class="candidate-grid" id="opt-candidates"></div>
+                  <div class="candidate-note"><svg class="icon"><use href="#i-info"/></svg>预检仅作为采用建议，不会自动替换镜头。点击候选图可切换对比，采用后原图保留为历史版本。</div>
+                </div>
+              </section>
+
+              <aside class="panel precheck-panel" id="opt-precheck">
+                <div class="panel-head"><div><span class="section-kicker">PRECHECK</span><h3>预检结论</h3></div><span class="status-pill is-ok" id="precheck-overall"><i></i>建议采用</span></div>
+                <div class="precheck-body" id="precheck-body"></div>
+                <div class="adopt-box">
+                  <div class="adopt-note" id="adopt-note">采用后将仅复检 S3，并更新总体报告。原图保留，不覆盖。</div>
+                  <button class="btn btn-primary btn-block" id="opt-adopt" data-action="adopt"><svg class="icon"><use href="#i-check"/></svg>采用为当前镜头</button>
+                  <button class="btn btn-ghost btn-block" data-action="redraw"><svg class="icon"><use href="#i-refresh"/></svg>重抽下一批</button>
+                </div>
+              </aside>
+            </div>
+
+            <section class="panel generation-log">
+              <div class="panel-head"><div><span class="section-kicker">GENERATION RECORD</span><h3>生成记录</h3></div><span class="micro-label" id="gen-log-meta">GEN-001 · 本地记录</span></div>
+              <div class="log-track" id="gen-log-track"></div>
+            </section>
+          </div>
+        </section>
+
+        <!-- ============ HISTORY ============ -->
+        <section class="screen" id="screen-history" data-title="历史报告" data-eyebrow="LIBRARY / REPORTS" data-subtitle="本地保存的检测任务与报告">
+          <div class="screen-inner history-screen">
+            <div class="page-head">
+              <div>
+                <span class="section-kicker">LOCAL ARCHIVE</span>
+                <h2>历史任务与报告</h2>
+                <p>报告仅保存在本机。历史结果会标注生成时间，不会伪装为实时分析。</p>
+              </div>
+              <span class="status-pill is-neutral"><i></i>正在读取本地存档</span>
+            </div>
+
+            <div class="history-toolbar">
+              <div class="history-filters" id="history-filters">
+                <button class="chip is-active" data-filter="all">全部</button>
+                <button class="chip" data-filter="done">已完成</button>
+                <button class="chip" data-filter="partial">部分完成</button>
+                <button class="chip" data-filter="failed">失败</button>
+              </div>
+              <div class="history-actions">
+                <div class="search-field"><svg class="icon"><use href="#i-search"/></svg><input id="history-search" type="search" placeholder="搜索角色或任务名称" aria-label="搜索历史任务"></div>
+              </div>
+            </div>
+
+            <div class="history-layout">
+              <section class="panel history-list-panel">
+                <div class="panel-head">
+                  <div><span class="section-kicker">ARCHIVE / TASKS</span><h3>任务记录</h3></div>
+                  <span class="micro-label">按更新时间排序</span>
+                </div>
+                <div class="history-list is-loading" id="history-rows">
+                  <div class="rows-skeleton" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+                  <button class="history-row" data-nav="results" data-status="done" data-search="阿岚 第一幕">
+                    <span class="history-thumb"><img src="assets/shot-1.jpg" alt=""><i class="thumb-badge is-warn">2</i></span>
+                    <span class="history-main"><b>阿岚 · 第一幕</b><span>角色：阿岚 · 3 个镜头</span></span>
+                    <span class="history-result"><span class="status-pill is-warn"><i></i>2 个确定问题</span><small>14 项无法判断</small></span>
+                    <span class="history-time">今天 10:06<small>本地报告</small></span>
+                    <span class="history-go"><svg class="icon"><use href="#i-arrow-right"/></svg></span>
+                  </button>
+                  <button class="history-row" data-nav="results" data-status="partial" data-search="阿岚 窗边补拍">
+                    <span class="history-thumb"><img src="assets/history-a.jpg" alt=""><i class="thumb-badge is-info">2</i></span>
+                    <span class="history-main"><b>阿岚 · 窗边补拍</b><span>角色：阿岚 · 2 个镜头</span></span>
+                    <span class="history-result"><span class="status-pill is-partial"><i></i>部分完成</span><small>S2 分析失败</small></span>
+                    <span class="history-time">昨天 18:40<small>本地报告</small></span>
+                    <span class="history-go"><svg class="icon"><use href="#i-arrow-right"/></svg></span>
+                  </button>
+                  <button class="history-row" data-nav="results" data-status="done" data-search="阿岚 咖啡馆试拍">
+                    <span class="history-thumb"><img src="assets/history-b.jpg" alt=""><i class="thumb-badge is-ok">0</i></span>
+                    <span class="history-main"><b>阿岚 · 咖啡馆试拍</b><span>角色：阿岚 · 3 个镜头</span></span>
+                    <span class="history-result"><span class="status-pill is-ok"><i></i>全部一致</span><small>无确定问题</small></span>
+                    <span class="history-time">11 月 20 日<small>历史结果</small></span>
+                    <span class="history-go"><svg class="icon"><use href="#i-arrow-right"/></svg></span>
+                  </button>
+                  <button class="history-row" data-nav="results" data-status="failed" data-search="测试任务 配饰细节">
+                    <span class="history-thumb is-empty"><svg class="icon"><use href="#i-image"/></svg><i class="thumb-badge is-failed">4</i></span>
+                    <span class="history-main"><b>测试任务 · 配饰细节</b><span>角色：未命名 · 4 个镜头</span></span>
+                    <span class="history-result"><span class="status-pill is-failed"><i></i>分析失败</span><small>服务响应超时</small></span>
+                    <span class="history-time">11 月 19 日<small>未生成报告</small></span>
+                    <span class="history-go"><svg class="icon"><use href="#i-arrow-right"/></svg></span>
+                  </button>
+                </div>
+                <div class="history-empty" id="history-empty" hidden><svg class="icon"><use href="#i-search"/></svg><p>没有找到匹配的任务</p></div>
+              </section>
+
+              <aside class="panel archive-side">
+                <div class="panel-head">
+                  <div><span class="section-kicker">LOCAL STORAGE</span><h3>存档概况</h3></div>
+                  <span class="status-icon is-info"><svg class="icon"><use href="#i-shield"/></svg></span>
+                </div>
+                <div class="archive-stats">
+                  <div><b>—</b><span>本地任务</span></div>
+                  <div><b>—</b><span>完整报告</span></div>
+                  <div><b>—</b><span>生成记录</span></div>
+                </div>
+                <div class="archive-facts">
+                  <div><span>占用空间</span><b>—</b></div>
+                  <div><span>保存位置</span><b>仅本机</b></div>
+                  <div><span>最早记录</span><b>—</b></div>
+                </div>
+                <div class="archive-note"><svg class="icon"><use href="#i-info"/></svg><span>历史结果会标注生成时间；打开报告后可重新导出 Markdown 或 JSON。</span></div>
+                <button class="btn btn-ghost" data-nav="settings"><svg class="icon"><use href="#i-settings"/></svg>管理本地数据</button>
+              </aside>
+            </div>
+
+            <div class="history-foot"><span>正在读取本地存档…</span><span>本地数据不会上传至自建服务器</span></div>
+          </div>
+        </section>
+
+        <!-- ============ SETTINGS ============ -->
+        <section class="screen" id="screen-settings" data-title="设置" data-eyebrow="SETTINGS / LOCAL" data-subtitle="服务连接、生成参数与本地数据">
+          <div class="screen-inner">
+            <div class="page-head">
+              <div><span class="section-kicker">CONFIGURATION</span><h2>本地服务设置</h2><p>分析与生成服务均在本机配置。API Key 不进入浏览器存储、导出文件或日志。</p></div>
+              <span class="status-pill is-neutral"><i></i>单机模式</span>
+            </div>
+
+            <div class="settings-grid">
+              <section class="panel settings-card" data-service="analysis">
+                <div class="panel-head"><div><span class="section-kicker">MULTIMODAL</span><h3>分析服务</h3></div><span class="status-pill is-neutral" id="analysis-service-status"><i></i>未配置</span></div>
+                <div class="setting-row"><div><b>服务状态</b><p id="analysis-status-text">等待读取本地配置</p></div><span class="mono" id="analysis-status-code">—</span></div>
+                <div class="setting-row"><div><b>当前模型</b><p id="analysis-model-text">国内可直连 · 质量优先 · 低温度结构化输出</p></div><span class="mono" id="analysis-model-code">—</span></div>
+                <div class="setting-row"><div><b>服务地址</b><p>仅通过本机回环地址访问</p></div><span class="mono">127.0.0.1</span></div>
+                <div class="setting-row"><div><b>API Key</b><p id="analysis-key-text">由本地后端读取，前端仅显示掩码</p></div><span class="masked-key" id="analysis-key-mask">未配置</span></div>
+                <div class="settings-actions">
+                  <button class="btn btn-ghost btn-sm" data-action="config-service" data-service="analysis" id="analysis-config-btn"><svg class="icon"><use href="#i-settings"/></svg>配置</button>
+                  <button class="btn btn-ghost btn-sm" data-action="test-analysis"><svg class="icon"><use href="#i-zap"/></svg>测试连接</button>
+                </div>
+                <div class="test-result" id="test-analysis-result" hidden></div>
+              </section>
+
+              <section class="panel settings-card" data-service="generation">
+                <div class="panel-head"><div><span class="section-kicker">IMAGE GENERATION</span><h3>图像生成服务</h3></div><span class="status-pill is-neutral" id="gen-service-status"><i></i>未配置</span></div>
+                <div class="setting-row"><div><b>服务状态</b><p id="gen-status-text">等待读取本地配置</p></div><span class="mono" id="gen-status-code">—</span></div>
+                <div class="setting-row"><div><b>当前模型</b><p id="gen-model-text">单次 1 张 · 负向内容合并进正向提示词</p></div><span class="mono" id="gen-model-code">—</span></div>
+                <div class="setting-row"><div><b>API Key</b><p id="gen-key-text">仅保存在本地受保护配置中</p></div><span class="masked-key" id="gen-key-mask">未配置</span></div>
+                <div class="setting-row"><div><b>默认生成张数</b><p>每批候选图数量，可调 1–4</p></div><div class="segmented compact" id="batch-seg"><button data-count="1">1</button><button data-count="2">2</button><button data-count="3">3</button><button class="is-active" data-count="4">4</button></div></div>
+                <div class="setting-row"><div><b>单张文件上限</b><p>超出时直接提示替换，不做有损原图压缩</p></div><button class="text-btn" data-action="edit-upload-limit" id="upload-limit-btn">20 MB</button></div>
+                <div class="settings-actions">
+                  <button class="btn btn-ghost btn-sm" data-action="config-service" data-service="generation" id="generation-config-btn"><svg class="icon"><use href="#i-settings"/></svg>配置</button>
+                  <button class="btn btn-ghost btn-sm" data-action="test-generation"><svg class="icon"><use href="#i-zap"/></svg>测试连接</button>
+                </div>
+                <div class="test-result" id="test-generation-result" hidden></div>
+              </section>
+            </div>
+
+            <div class="settings-lower">
+              <section class="panel settings-card">
+                <div class="panel-head"><div><span class="section-kicker">PRIVACY</span><h3>隐私与数据边界</h3></div><span class="status-icon is-info"><svg class="icon"><use href="#i-shield"/></svg></span></div>
+                <ul class="privacy-list">
+                  <li><svg class="icon"><use href="#i-check"/></svg><span>图片仅保存在本机，不持久上传至自建服务器。</span></li>
+                  <li><svg class="icon"><use href="#i-check"/></svg><span>首次调用第三方模型或生成服务前，页面会明确告知。</span></li>
+                  <li><svg class="icon"><use href="#i-check"/></svg><span>不进行人脸身份识别，不保存人脸特征。</span></li>
+                  <li><svg class="icon"><use href="#i-check"/></svg><span>日志不记录图片内容与 API Key。</span></li>
+                </ul>
+                <div class="setting-row"><div><b>存储位置</b><p>仅保存在本机 · 无云端同步</p></div><span class="mono">LOCAL</span></div>
+              </section>
+              <section class="panel settings-card">
+                <div class="panel-head"><div><span class="section-kicker">LOCAL DATA</span><h3>本地数据</h3></div><span class="micro-label" id="settings-storage-size">约 0 B</span></div>
+                <div class="setting-row"><div><b>历史报告</b><p id="settings-report-stats">0 条任务记录 · 0 份完整报告</p></div><button class="text-btn" data-nav="history">查看</button></div>
+                <div class="setting-row"><div><b>生成记录</b><p id="settings-gen-stats">0 条生成记录 · 0 张候选图</p></div><span class="mono">LOCAL</span></div>
+                <div class="danger-zone"><div><b>清除本地数据</b><p>删除历史任务、候选图与生成记录。此操作不可撤销；API Key 与本地设置会保留。</p></div><button class="btn btn-danger btn-sm" data-action="clear-data"><svg class="icon"><use href="#i-trash"/></svg>清除数据</button></div>
+              </section>
+            </div>
+            <p class="prototype-note" id="settings-mode-note"><svg class="icon"><use href="#i-info"/></svg>真实模式：服务配置与密钥仅保存在本机；测试连接会访问所配置的第三方服务。</p>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <div class="notify-popover" id="notify-popover" hidden>
+    <div class="popover-head"><b>通知</b><button class="icon-btn btn-mini" data-action="close-notify" aria-label="关闭通知"><svg class="icon"><use href="#i-close"/></svg></button></div>
+    <div id="notify-list" aria-live="polite"></div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <span class="toast-icon"><svg class="icon"><use href="#i-check"/></svg></span>
+    <span id="toast-text">已完成</span>
+  </div>
+
+  <div class="modal-backdrop" id="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-head"><h3 id="modal-title">确认操作</h3><button class="icon-btn btn-mini" data-action="close-modal" aria-label="关闭"><svg class="icon"><use href="#i-close"/></svg></button></div>
+      <div class="settings-form" id="service-config-form" hidden>
+        <input type="hidden" id="config-service">
+        <label class="field-label" for="config-provider">服务商</label>
+        <select class="text-input config-input" id="config-provider">
+          <option value="doubao">火山方舟（豆包 / Seedream）</option>
+          <option value="mock">Mock（本地测试，不联网）</option>
+        </select>
+        <label class="field-label" for="config-model">模型 ID <em>以控制台可用 ID 为准</em></label>
+        <input class="text-input config-input" id="config-model" type="text" autocomplete="off" placeholder="例如控制台中的模型 ID">
+        <label class="field-label" for="config-base">服务地址</label>
+        <input class="text-input config-input" id="config-base" type="url" autocomplete="off" placeholder="https://ark.cn-beijing.volces.com/api/v3">
+        <label class="field-label" for="config-key">API Key <em>仅提交到本地后端</em></label>
+        <input class="text-input config-input" id="config-key" type="password" autocomplete="new-password" placeholder="留空则不修改已保存的 Key">
+        <div id="config-size-row">
+          <label class="field-label" for="config-size">尺寸档位 <em>可留空，以服务端默认值为准【待实测】</em></label>
+          <input class="text-input config-input" id="config-size" type="text" autocomplete="off" placeholder="例如 2K">
+        </div>
+        <p class="field-hint" id="config-hint">Key 不会写入浏览器存储、导出文件或日志。</p>
+        <button class="btn btn-ghost btn-sm config-delete" id="config-delete-key" type="button" data-action="delete-key">删除已保存的 Key</button>
+      </div>
+      <div class="settings-form" id="limit-config-form" hidden>
+        <label class="field-label" for="limit-upload">单张文件上限（MB）</label>
+        <input class="text-input config-input" id="limit-upload" type="number" min="1" max="100" step="1">
+        <p class="field-hint">允许 1–100 MB。超出上限会拒绝上传并提示压缩，不会覆盖原图。</p>
+      </div>
+      <p id="modal-copy">确认执行此操作？</p>
+      <div class="modal-actions"><button class="btn btn-ghost" data-action="close-modal">取消</button><button class="btn btn-danger" id="modal-confirm">确认</button></div>
+    </div>
+  </div>
+
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="查看镜头大图" hidden>
+    <figure class="lightbox-stage">
+      <button class="lightbox-close" data-action="close-lightbox" aria-label="关闭大图"><svg class="icon"><use href="#i-close"/></svg></button>
+      <img id="lightbox-img" alt="">
+      <figcaption class="lightbox-meta">
+        <span class="lightbox-badge" id="lightbox-id">S1</span>
+        <span class="lightbox-name" id="lightbox-name"></span>
+      </figcaption>
+    </figure>
+  </div>
+
+  <script src="app.js?v=20261125x"></script>
+  <script type="module" src="js/main.js?v=20261126a"></script>
+</body>
+</html>

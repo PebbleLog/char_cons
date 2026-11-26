@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Local runtime data (never commit)
+data/
+*.db
+*.db-wal
+*.db-shm
+logs/
+config.json
+.env
+
+# Local design reference images (kept on disk, not committed)
+/picture/
+
+# Local docs and project instructions (kept on disk, not committed)
+/docs/
+/CLAUDE.md
+
+# Local Windows launcher (hard-coded interpreter path)
+/start.bat
+
+# Test / tool artifacts
+.playwright-mcp/
+test-results/
+playwright-report/
+*.log
+# Root-level verification screenshots (temporary, never commit)
+/*.png
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Claude Code local config
+.claude/
